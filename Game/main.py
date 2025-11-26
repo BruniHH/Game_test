@@ -525,7 +525,7 @@ class Game:
         
         # Название игры
         font_large = pygame.font.SysFont('arial', 60)
-        title = font_large.render("ЛЕСНОЙ БЕГЛЕЦ", True, WHITE)
+        title = font_large.render("Таинственный лес", True, WHITE)
         screen.blit(title, (SCREEN_WIDTH//2 - title.get_width()//2, 150))
         
         # Инструкция
@@ -718,4 +718,5 @@ def main():
     pygame.quit()
 
 if __name__ == "__main__":
+
     main()
