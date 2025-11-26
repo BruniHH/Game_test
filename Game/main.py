@@ -412,9 +412,9 @@ class WaveManager:
     def __init__(self):
         self.current_wave = 0
         self.waves = [
-            {"enemies_to_kill": 1, "description": "Волна 1: Убейте 15 врагов"},
-            {"enemies_to_kill": 2, "description": "Волна 2: Убейте 25 врагов"},
-            {"enemies_to_kill": 3, "description": "Финальная волна: Убейте 30 врагов"}
+            {"enemies_to_kill": 15, "description": "Волна 1: Убейте 15 врагов"},
+            {"enemies_to_kill": 25, "description": "Волна 2: Убейте 25 врагов"},
+            {"enemies_to_kill": 30, "description": "Финальная волна: Убейте 30 врагов"}
         ]
         self.enemies_killed = 0
         self.enemies_killed_this_wave = 0
@@ -477,6 +477,7 @@ class Game:
         self.resources = []
         self.trees = []
         self.game_state = "menu"
+        self.menu_state = "main"  # "main", "controls"
         self.last_enemy_spawn = 0
         self.enemy_spawn_cooldown = 2000
         self.show_warning = False
@@ -516,7 +517,7 @@ class Game:
                 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
-                    if self.game_state == "menu":
+                    if self.game_state == "menu" and self.menu_state == "main":
                         self.game_state = "playing"
                         self.wave_manager.game_start_time = time.time()
                         self.wave_manager.start_next_wave()
@@ -534,6 +535,8 @@ class Game:
                             self.show_warning = False
                         else:
                             self.game_state = "playing"
+                    elif self.game_state == "menu" and self.menu_state == "controls":
+                        self.menu_state = "main"
                     elif self.game_state == "menu":
                         return False
                         
@@ -594,6 +597,26 @@ class Game:
                                 
                 if event.key == pygame.K_RETURN and self.game_state == "game_over":
                     self.__init__()
+            
+            if event.type == pygame.MOUSEBUTTONDOWN and self.game_state == "menu":
+                mouse_pos = pygame.mouse.get_pos()
+                
+                if self.menu_state == "main":
+                    start_button = pygame.Rect(SCREEN_WIDTH//2 - 100, 300, 200, 50)
+                    controls_button = pygame.Rect(SCREEN_WIDTH//2 - 100, 370, 200, 50)
+                    
+                    if start_button.collidepoint(mouse_pos):
+                        self.game_state = "playing"
+                        self.wave_manager.game_start_time = time.time()
+                        self.wave_manager.start_next_wave()
+                    
+                    if controls_button.collidepoint(mouse_pos):
+                        self.menu_state = "controls"
+                
+                elif self.menu_state == "controls":
+                    back_button = pygame.Rect(SCREEN_WIDTH//2 - 100, 600, 200, 50)
+                    if back_button.collidepoint(mouse_pos):
+                        self.menu_state = "main"
             
             if event.type == pygame.MOUSEBUTTONDOWN and self.game_state == "paused" and self.show_warning:
                 mouse_pos = pygame.mouse.get_pos()
@@ -675,7 +698,10 @@ class Game:
         screen.fill(BLACK)
         
         if self.game_state == "menu":
-            self.draw_menu()
+            if self.menu_state == "main":
+                self.draw_main_menu()
+            elif self.menu_state == "controls":
+                self.draw_controls_menu()
         elif self.game_state == "playing":
             self.draw_game()
             self.inventory.draw(screen)
@@ -699,6 +725,70 @@ class Game:
             self.draw_victory_screen()
             
         pygame.display.flip()
+    
+    def draw_main_menu(self):
+        screen.fill(GRASS_GREEN)
+        
+        font_large = pygame.font.SysFont('arial', 60)
+        title = font_large.render("ЛЕСНОЙ БЕГЛЕЦ", True, WHITE)
+        screen.blit(title, (SCREEN_WIDTH//2 - title.get_width()//2, 150))
+        
+        # Кнопка "Начать игру"
+        start_button = pygame.Rect(SCREEN_WIDTH//2 - 100, 300, 200, 50)
+        pygame.draw.rect(screen, GREEN, start_button)
+        start_text = pygame.font.SysFont('arial', 30).render("Начать игру", True, WHITE)
+        screen.blit(start_text, (start_button.centerx - start_text.get_width()//2, 
+                               start_button.centery - start_text.get_height()//2))
+        
+        # Кнопка "Управление"
+        controls_button = pygame.Rect(SCREEN_WIDTH//2 - 100, 370, 200, 50)
+        pygame.draw.rect(screen, BLUE, controls_button)
+        controls_text = pygame.font.SysFont('arial', 30).render("Управление", True, WHITE)
+        screen.blit(controls_text, (controls_button.centerx - controls_text.get_width()//2, 
+                                  controls_button.centery - controls_text.get_height()//2))
+        
+        # Подсветка кнопок при наведении
+        mouse_pos = pygame.mouse.get_pos()
+        if start_button.collidepoint(mouse_pos):
+            pygame.draw.rect(screen, (100, 255, 100), start_button, 3)
+        if controls_button.collidepoint(mouse_pos):
+            pygame.draw.rect(screen, (100, 100, 255), controls_button, 3)
+    
+    def draw_controls_menu(self):
+        screen.fill(GRASS_GREEN)
+        
+        font_large = pygame.font.SysFont('arial', 60)
+        title = font_large.render("УПРАВЛЕНИЕ", True, WHITE)
+        screen.blit(title, (SCREEN_WIDTH//2 - title.get_width()//2, 50))
+        
+        controls = [
+            "WASD - движение",
+            "E - сбор ресурсов", 
+            "SPACE - атака",
+            "1 - экипировать палку",
+            "2 - экипировать меч",
+            "I - инвентарь и крафт",
+            "R - съесть ягоды",
+            "H - использовать траву",
+            "P - выпить зелье",
+            "ESC - пауза/меню"
+        ]
+        
+        for i, text in enumerate(controls):
+            control_text = pygame.font.SysFont('arial', 30).render(text, True, WHITE)
+            screen.blit(control_text, (SCREEN_WIDTH//2 - control_text.get_width()//2, 150 + i * 40))
+        
+        # Кнопка "Назад"
+        back_button = pygame.Rect(SCREEN_WIDTH//2 - 100, 600, 200, 50)
+        pygame.draw.rect(screen, RED, back_button)
+        back_text = pygame.font.SysFont('arial', 30).render("Назад", True, WHITE)
+        screen.blit(back_text, (back_button.centerx - back_text.get_width()//2, 
+                              back_button.centery - back_text.get_height()//2))
+        
+        # Подсветка кнопки при наведении
+        mouse_pos = pygame.mouse.get_pos()
+        if back_button.collidepoint(mouse_pos):
+            pygame.draw.rect(screen, (255, 100, 100), back_button, 3)
     
     def draw_wave_info(self):
         wave_info = self.wave_manager.get_wave_info()
@@ -731,35 +821,6 @@ class Game:
                 "Используйте это время для лечения и подготовки", 
                 True, LIGHT_GRAY)
             screen.blit(hint_text, (SCREEN_WIDTH//2 - hint_text.get_width()//2, 185))
-    
-    def draw_menu(self):
-        screen.fill(GRASS_GREEN)
-        
-        font_large = pygame.font.SysFont('arial', 60)
-        title = font_large.render("ЛЕСНОЙ БЕГЛЕЦ", True, WHITE)
-        screen.blit(title, (SCREEN_WIDTH//2 - title.get_width()//2, 150))
-        
-        font_small = pygame.font.SysFont('arial', 30)
-        instruction = font_small.render("Нажмите ENTER для начала игры", True, WHITE)
-        screen.blit(instruction, (SCREEN_WIDTH//2 - instruction.get_width()//2, 300))
-        
-        controls = [
-            "Управление:",
-            "WASD - движение",
-            "E - сбор ресурсов", 
-            "SPACE - атака",
-            "1 - экипировать палку",
-            "2 - экипировать меч",
-            "I - инвентарь и крафт",
-            "R - съесть ягоды",
-            "H - использовать траву",
-            "P - выпить зелье",
-            "ESC - пауза/меню"
-        ]
-        
-        for i, text in enumerate(controls):
-            control_text = pygame.font.SysFont('arial', 20).render(text, True, WHITE)
-            screen.blit(control_text, (50, 400 + i * 30))
     
     def draw_game(self):
         self.texture_manager.draw_grass_background(screen, self.camera)
